@@ -82,11 +82,22 @@ app.get('/', (req, res) => {
 // Riders API
 app.get('/riders/pending', async (req, res) => {
     try {
+        // 1. If the database is not ready, connect now
+        if (!ridersCollection) {
+            await client.connect();
+            const db = client.db('parcelDB');
+            ridersCollection = db.collection('riders');
+        }
+
         const query = { status: 'pending' };
         const result = await ridersCollection.find(query).toArray();
         res.send(result);
     } catch (error) {
-        res.status(500).send({ message: "Database error" });
+        // 2. Send the real error so you can see it in the browser
+        res.status(500).send({
+            message: "Database connection failed",
+            error: error.message
+        });
     }
 });
 
