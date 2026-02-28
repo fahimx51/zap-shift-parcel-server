@@ -299,7 +299,7 @@ async function run() {
             res.send(result);
         });
 
-        app.get('/riders/pending', verifyFBToken, verifyAdmin, async (req, res) => {
+        app.get('/riders/pending', async (req, res) => {
             const query = { status: 'pending' };
 
             const result = await ridersCollection.find(query).toArray();
