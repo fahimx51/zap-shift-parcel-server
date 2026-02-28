@@ -28,24 +28,27 @@ const client = new MongoClient(uri, {
 // Global Collection Variables
 let parcelCollection, paymentCollection, usersCollection, ridersCollection;
 
-async function run() {
+// --- LAZY CONNECTION MIDDLEWARE ---
+// This ensures DB is connected before ANY route runs
+const ensureDB = async (req, res, next) => {
     try {
-        await client.connect();
-        const db = client.db('parcelDB');
-
-        // Initialize Collections
-        parcelCollection = db.collection('parcels');
-        paymentCollection = db.collection('payments');
-        usersCollection = db.collection('users');
-        ridersCollection = db.collection('riders');
-
-        await client.db("admin").command({ ping: 1 });
-        console.log("Successfully connected to MongoDB!");
+        if (!parcelCollection || !paymentCollection || !usersCollection || !ridersCollection) {
+            await client.connect();
+            const db = client.db('parcelDB');
+            parcelCollection = db.collection('parcels');
+            paymentCollection = db.collection('payments');
+            usersCollection = db.collection('users');
+            ridersCollection = db.collection('riders');
+            console.log("Lazy Connection Successful");
+        }
+        next();
     } catch (error) {
-        console.error("MongoDB connection failed:", error);
+        res.status(500).send({ message: "Database connection failed", error: error.message });
     }
-}
-run().catch(console.dir);
+};
+
+// Apply lazy connection to all routes
+app.use(ensureDB);
 
 // --- Custom Middlewares ---
 
@@ -81,24 +84,9 @@ app.get('/', (req, res) => {
 
 // Riders API
 app.get('/riders/pending', async (req, res) => {
-    try {
-        // 1. If the database is not ready, connect now
-        if (!ridersCollection) {
-            await client.connect();
-            const db = client.db('parcelDB');
-            ridersCollection = db.collection('riders');
-        }
-
-        const query = { status: 'pending' };
-        const result = await ridersCollection.find(query).toArray();
-        res.send(result);
-    } catch (error) {
-        // 2. Send the real error so you can see it in the browser
-        res.status(500).send({
-            message: "Database connection failed",
-            error: error.message
-        });
-    }
+    const query = { status: 'pending' };
+    const result = await ridersCollection.find(query).toArray();
+    res.send(result);
 });
 
 app.get('/riders/active', verifyFBToken, verifyAdmin, async (req, res) => {
