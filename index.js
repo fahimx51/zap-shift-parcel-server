@@ -89,7 +89,7 @@ app.get('/riders/pending', async (req, res) => {
     res.send(result);
 });
 
-app.get('/riders/active', verifyFBToken, verifyAdmin, async (req, res) => {
+app.get('/riders/active', async (req, res) => {
     const query = { status: 'accepted' };
     const result = await ridersCollection.find(query).toArray();
     res.send(result);
