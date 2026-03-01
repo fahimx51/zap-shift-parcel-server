@@ -162,6 +162,26 @@ app.post('/payments', async (req, res) => {
     res.send({ paymentResult, updateResult });
 });
 
+app.get('/payments', verifyFBToken, async (req, res) => {
+    const userEmail = req.query.email;
+
+    if (req.decoded.email !== userEmail) {
+        return res.status(403).send({ messege: 'forbidden access' });
+    }
+
+    const query = {};
+    const options = {
+        sort: { date: -1 }
+    };
+
+    if (userEmail) {
+        query.email = userEmail;
+    }
+
+    const result = await paymentCollection.find(query).toArray();
+    res.send(result);
+});
+
 // Server Listen
 app.listen(port, () => {
     console.log(`Server is listening on port ${port}`);
